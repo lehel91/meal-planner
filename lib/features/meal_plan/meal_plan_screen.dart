@@ -101,8 +101,18 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       }
       return;
     }
+
+    final ingredientsByRecipe = <int, List<RecipeIngredientWithDetails>>{};
+    for (final mp in mealPlans) {
+      final id = mp.recipe.id;
+      if (!ingredientsByRecipe.containsKey(id)) {
+        ingredientsByRecipe[id] =
+            await widget.db.getIngredientsForRecipe(id);
+      }
+    }
+
     final days = List.generate(_days, (i) => _start.add(Duration(days: i)));
-    await PdfService.generateAndShare(days, mealPlans);
+    await PdfService.generateAndShare(days, mealPlans, ingredientsByRecipe);
   }
 }
 

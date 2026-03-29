@@ -13,5 +13,3 @@
 - [ ] Play Console store listing — 512×512 icon, screenshots, short/full description, category
 - [ ] Data safety form — fill in Play Console (app stores data locally only, no sharing)
 - [ ] Content rating questionnaire — fill in Play Console
-
-!!! Important, fix git history to change committer to your public email, also configure to commit future items with the appropriate email address

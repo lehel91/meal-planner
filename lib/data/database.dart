@@ -5,16 +5,27 @@ import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import 'measurement_unit.dart';
 import 'tables.dart';
 
 part 'database.g.dart';
 
-@DriftDatabase(tables: [Recipes, MealPlans])
+@DriftDatabase(tables: [Recipes, MealPlans, Ingredients, RecipeIngredients])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.createTable(ingredients);
+            await m.createTable(recipeIngredients);
+          }
+        },
+      );
 
   // ── Recipes ──────────────────────────────────────────────────────────────
 
@@ -74,6 +85,104 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> removeMealPlan(int id) =>
       (delete(mealPlans)..where((m) => m.id.equals(id))).go();
+
+  // ── Ingredients ───────────────────────────────────────────────────────────
+
+  Stream<List<Ingredient>> watchAllIngredients() =>
+      (select(ingredients)..orderBy([(i) => OrderingTerm.asc(i.name)])).watch();
+
+  Future<int> insertIngredient(IngredientsCompanion ingredient) =>
+      into(ingredients).insert(ingredient);
+
+  Future<bool> updateIngredient(IngredientsCompanion ingredient) =>
+      update(ingredients).replace(ingredient);
+
+  Future<int> deleteIngredient(int id) =>
+      (delete(ingredients)..where((i) => i.id.equals(id))).go();
+
+  // ── Recipe ingredients ────────────────────────────────────────────────────
+
+  Stream<List<RecipeIngredientWithDetails>> watchIngredientsForRecipe(
+    int recipeId,
+  ) {
+    final query = (select(recipeIngredients)
+          ..where((ri) => ri.recipeId.equals(recipeId)))
+        .join([
+      innerJoin(
+        ingredients,
+        ingredients.id.equalsExp(recipeIngredients.ingredientId),
+      )
+    ]);
+
+    return query.watch().map(
+          (rows) => rows
+              .map(
+                (row) => RecipeIngredientWithDetails(
+                  recipeIngredient: row.readTable(recipeIngredients),
+                  ingredient: row.readTable(ingredients),
+                ),
+              )
+              .toList(),
+        );
+  }
+
+  Future<int> addRecipeIngredient(RecipeIngredientsCompanion entry) =>
+      into(recipeIngredients).insert(entry);
+
+  Future<bool> updateRecipeIngredient(RecipeIngredientsCompanion entry) =>
+      update(recipeIngredients).replace(entry);
+
+  Future<int> removeRecipeIngredient(int id) =>
+      (delete(recipeIngredients)..where((ri) => ri.id.equals(id))).go();
+
+  Future<void> removeAllRecipeIngredients(int recipeId) =>
+      (delete(recipeIngredients)
+            ..where((ri) => ri.recipeId.equals(recipeId)))
+          .go();
+
+  Future<List<RecipeIngredientWithDetails>> getIngredientsForRecipe(
+    int recipeId,
+  ) {
+    final query = (select(recipeIngredients)
+          ..where((ri) => ri.recipeId.equals(recipeId)))
+        .join([
+      innerJoin(
+        ingredients,
+        ingredients.id.equalsExp(recipeIngredients.ingredientId),
+      )
+    ]);
+    return query.get().then(
+          (rows) => rows
+              .map(
+                (row) => RecipeIngredientWithDetails(
+                  recipeIngredient: row.readTable(recipeIngredients),
+                  ingredient: row.readTable(ingredients),
+                ),
+              )
+              .toList(),
+        );
+  }
+
+  Future<int> findOrCreateIngredient(String name) async {
+    final existing = await (select(ingredients)
+          ..where((i) => i.name.equals(name)))
+        .getSingleOrNull();
+    if (existing != null) return existing.id;
+    return into(ingredients).insert(IngredientsCompanion(name: Value(name)));
+  }
+}
+
+class RecipeIngredientWithDetails {
+  final RecipeIngredient recipeIngredient;
+  final Ingredient ingredient;
+
+  RecipeIngredientWithDetails({
+    required this.recipeIngredient,
+    required this.ingredient,
+  });
+
+  MeasurementUnit? get unit => recipeIngredient.unit;
+  double? get quantity => recipeIngredient.quantity;
 }
 
 class MealPlanWithRecipe {
