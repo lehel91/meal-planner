@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(export PATH=\"$PATH:/c/Programs/flutter/bin\")",
+      "Bash(flutter pub:*)",
+      "Bash(dart run:*)",
+      "Bash(flutter analyze:*)",
+      "Bash(cp:*)"
+    ]
+  }
+}
