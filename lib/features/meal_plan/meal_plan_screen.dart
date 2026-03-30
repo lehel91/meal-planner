@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../data/app_repository.dart';
-import '../pdf/pdf_service.dart';
 import 'recipe_picker_sheet.dart';
 
 class MealPlanScreen extends StatefulWidget {
@@ -28,13 +27,6 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       appBar: AppBar(
         title: const Text('Meal Plan'),
         centerTitle: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.picture_as_pdf_outlined),
-            tooltip: 'Export PDF',
-            onPressed: _exportPdf,
-          ),
-        ],
       ),
       body: Column(
         children: [
@@ -90,30 +82,6 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     }
   }
 
-  Future<void> _exportPdf() async {
-    final mealPlans =
-        await widget.repository.watchMealPlansForRange(_start, _end).first;
-    if (mealPlans.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No meals planned yet')),
-        );
-      }
-      return;
-    }
-
-    final ingredientsByRecipe = <int, List<RecipeIngredientWithDetails>>{};
-    for (final mp in mealPlans) {
-      final id = mp.recipe.id;
-      if (!ingredientsByRecipe.containsKey(id)) {
-        ingredientsByRecipe[id] =
-            await widget.repository.getIngredientsForRecipe(id);
-      }
-    }
-
-    final days = List.generate(_days, (i) => _start.add(Duration(days: i)));
-    await PdfService.generateAndShare(days, mealPlans, ingredientsByRecipe);
-  }
 }
 
 class _DaysSelector extends StatelessWidget {

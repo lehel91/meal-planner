@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'data/app_repository.dart';
 import 'features/meal_plan/meal_plan_screen.dart';
 import 'features/recipes/recipes_screen.dart';
+import 'features/shopping_list/shopping_list_screen.dart';
 import 'shared/theme.dart';
 
 class App extends StatefulWidget {
@@ -29,6 +30,7 @@ class _AppState extends State<App> {
           children: [
             RecipesScreen(repository: widget.repository),
             MealPlanScreen(repository: widget.repository),
+            ShoppingListScreen(repository: widget.repository),
           ],
         ),
         bottomNavigationBar: NavigationBar(
@@ -44,6 +46,11 @@ class _AppState extends State<App> {
               icon: Icon(Icons.calendar_today_outlined),
               selectedIcon: Icon(Icons.calendar_today),
               label: 'Meal Plan',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.shopping_cart_outlined),
+              selectedIcon: Icon(Icons.shopping_cart),
+              label: 'Shopping',
             ),
           ],
         ),

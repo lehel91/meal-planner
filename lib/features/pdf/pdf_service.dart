@@ -28,12 +28,29 @@ class PdfService {
 
     final shoppingItems = _aggregateShoppingList(mealPlans, ingredientsByRecipe);
 
-    final pdf = pw.Document();
+    // Load fonts with full Unicode / extended-Latin support (covers ő, ű, á, etc.)
+    final font = await PdfGoogleFonts.robotoRegular();
+    final fontBold = await PdfGoogleFonts.robotoBold();
+    final fontItalic = await PdfGoogleFonts.robotoItalic();
+
+    final pdf = pw.Document(
+      theme: pw.ThemeData.withFont(
+        base: font,
+        bold: fontBold,
+        italic: fontItalic,
+      ),
+    );
 
     pdf.addPage(
       pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(32),
+        pageFormat: PdfPageFormat(
+          PdfPageFormat.a4.width,
+          PdfPageFormat.a4.height,
+          marginLeft: 32,
+          marginRight: 32,
+          marginTop: 32,
+          marginBottom: 32,
+        ),
         build: (context) => [
           pw.Text(
             'Meal Plan',
@@ -126,7 +143,7 @@ class PdfService {
     final qty = item.quantity != null
         ? (item.quantity! % 1 == 0
             ? item.quantity!.toInt().toString()
-            : item.quantity!.toString())
+            : double.parse(item.quantity!.toStringAsFixed(4)).toString())
         : '';
     final unit = item.unit?.abbreviation ?? '';
     final label = [qty, unit, item.name].where((s) => s.isNotEmpty).join(' ');
@@ -157,107 +174,95 @@ class PdfService {
     Map<DateTime, MealPlanWithRecipe> planMap,
   ) {
     final rows = <pw.Widget>[];
-    for (int i = 0; i < days.length; i += 2) {
-      final leftDate = days[i];
-      final leftNorm = DateTime(leftDate.year, leftDate.month, leftDate.day);
 
-      pw.Widget right;
-      if (i + 1 < days.length) {
-        final rightDate = days[i + 1];
-        final rightNorm =
-            DateTime(rightDate.year, rightDate.month, rightDate.day);
-        right = _buildDayEntry(rightDate, planMap[rightNorm]);
-      } else {
-        right = pw.SizedBox();
+    for (int i = 0; i < days.length; i += 3) {
+      final children = <pw.Widget>[];
+
+      for (int j = 0; j < 3; j++) {
+        if (j > 0) children.add(pw.SizedBox(width: 6));
+
+        final idx = i + j;
+        if (idx < days.length) {
+          final date = days[idx];
+          final norm = DateTime(date.year, date.month, date.day);
+          children.add(
+            pw.Expanded(child: _buildDayEntry(date, planMap[norm])),
+          );
+        } else {
+          // Empty placeholder to keep grid alignment
+          children.add(pw.Expanded(child: pw.SizedBox()));
+        }
       }
 
       rows.add(pw.Row(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Expanded(child: _buildDayEntry(leftDate, planMap[leftNorm])),
-          pw.SizedBox(width: 8),
-          pw.Expanded(child: right),
-        ],
+        children: children,
       ));
-      rows.add(pw.SizedBox(height: 8));
+      rows.add(pw.SizedBox(height: 6));
     }
+
     return rows;
   }
 
   static pw.Widget _buildDayEntry(DateTime date, MealPlanWithRecipe? mp) {
     return pw.Container(
-      padding: const pw.EdgeInsets.all(10),
+      padding: const pw.EdgeInsets.all(8),
       decoration: pw.BoxDecoration(
         border: pw.Border.all(color: PdfColors.grey300),
-        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
       ),
       child: pw.Row(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        crossAxisAlignment: pw.CrossAxisAlignment.center,
         children: [
-          pw.SizedBox(
-            width: 44,
+          // Left: date + recipe name
+          pw.Expanded(
             child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.center,
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                pw.Text(
-                  DateFormat('d').format(date),
-                  style: pw.TextStyle(
-                      fontSize: 20, fontWeight: pw.FontWeight.bold),
+                pw.Row(
+                  children: [
+                    pw.Text(
+                      DateFormat('d').format(date),
+                      style: pw.TextStyle(
+                          fontSize: 15, fontWeight: pw.FontWeight.bold),
+                    ),
+                    pw.SizedBox(width: 4),
+                    pw.Text(
+                      '${DateFormat('MMM').format(date)}  ${DateFormat('EEE').format(date)}',
+                      style: const pw.TextStyle(
+                          fontSize: 9, color: PdfColors.grey600),
+                    ),
+                  ],
                 ),
-                pw.Text(
-                  DateFormat('MMM').format(date),
-                  style: const pw.TextStyle(
-                      fontSize: 10, color: PdfColors.grey700),
-                ),
-                pw.Text(
-                  DateFormat('EEE').format(date),
-                  style: const pw.TextStyle(
-                      fontSize: 9, color: PdfColors.grey600),
-                ),
+                pw.SizedBox(height: 4),
+                if (mp == null)
+                  pw.Text(
+                    'No meal planned',
+                    style: pw.TextStyle(
+                      fontSize: 9,
+                      color: PdfColors.grey500,
+                      fontStyle: pw.FontStyle.italic,
+                    ),
+                  )
+                else
+                  pw.Text(
+                    mp.recipe.name,
+                    style: pw.TextStyle(
+                        fontSize: 10, fontWeight: pw.FontWeight.bold),
+                  ),
               ],
             ),
           ),
-          pw.SizedBox(width: 10),
-          pw.Expanded(
-            child: mp == null
-                ? pw.Padding(
-                    padding: const pw.EdgeInsets.only(top: 6),
-                    child: pw.Text(
-                      'No meal planned',
-                      style: pw.TextStyle(
-                        color: PdfColors.grey500,
-                        fontStyle: pw.FontStyle.italic,
-                      ),
-                    ),
-                  )
-                : pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Text(
-                        mp.recipe.name,
-                        style: pw.TextStyle(
-                            fontSize: 13, fontWeight: pw.FontWeight.bold),
-                      ),
-                      if (mp.recipe.description != null) ...[
-                        pw.SizedBox(height: 3),
-                        pw.Text(
-                          mp.recipe.description!,
-                          style: const pw.TextStyle(
-                              fontSize: 10, color: PdfColors.grey700),
-                        ),
-                      ],
-                      if (mp.recipe.url != null) ...[
-                        pw.SizedBox(height: 6),
-                        pw.BarcodeWidget(
-                          barcode: pw.Barcode.qrCode(),
-                          data: mp.recipe.url!,
-                          width: 52,
-                          height: 52,
-                        ),
-                      ],
-                    ],
-                  ),
-          ),
+          // Right: QR code or fixed-size placeholder to keep uniform card height
+          if (mp?.recipe.url != null)
+            pw.BarcodeWidget(
+              barcode: pw.Barcode.qrCode(),
+              data: mp!.recipe.url!,
+              width: 40,
+              height: 40,
+            )
+          else
+            pw.SizedBox(width: 40, height: 40),
         ],
       ),
     );

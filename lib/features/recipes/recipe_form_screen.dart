@@ -132,7 +132,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
     final qty = d.quantity != null
         ? (d.quantity! % 1 == 0
             ? d.quantity!.toInt().toString()
-            : d.quantity!.toString())
+            : double.parse(d.quantity!.toStringAsFixed(4)).toString())
         : '';
     final unit = d.unit?.abbreviation ?? '';
     return '$qty${unit.isNotEmpty ? ' $unit' : ''} ${d.name}'.trim();
@@ -173,7 +173,8 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
                 labelText: 'Description (optional)',
                 border: OutlineInputBorder(),
               ),
-              maxLines: 3,
+              minLines: 5,
+              maxLines: 10,
               textCapitalization: TextCapitalization.sentences,
             ),
             const SizedBox(height: 16),
