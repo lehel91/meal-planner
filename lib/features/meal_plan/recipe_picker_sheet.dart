@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../data/database.dart';
+import '../../data/app_repository.dart';
 
 class RecipePickerSheet extends StatefulWidget {
-  final AppDatabase db;
+  final AppRepository repository;
 
-  const RecipePickerSheet({super.key, required this.db});
+  const RecipePickerSheet({super.key, required this.repository});
 
   @override
   State<RecipePickerSheet> createState() => _RecipePickerSheetState();
@@ -47,7 +47,7 @@ class _RecipePickerSheetState extends State<RecipePickerSheet> {
             ),
             Expanded(
               child: StreamBuilder<List<Recipe>>(
-                stream: widget.db.watchAllRecipes(),
+                stream: widget.repository.watchAllRecipes(),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
                     return const Center(child: CircularProgressIndicator());

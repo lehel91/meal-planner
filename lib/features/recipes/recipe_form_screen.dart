@@ -1,15 +1,14 @@
-import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../data/database.dart';
+import '../../data/app_repository.dart';
 import '../../data/measurement_unit.dart';
 
 class RecipeFormScreen extends StatefulWidget {
-  final AppDatabase db;
+  final AppRepository repository;
   final Recipe? recipe;
 
-  const RecipeFormScreen({super.key, required this.db, this.recipe});
+  const RecipeFormScreen({super.key, required this.repository, this.recipe});
 
   @override
   State<RecipeFormScreen> createState() => _RecipeFormScreenState();
@@ -45,12 +44,12 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
   }
 
   Future<void> _loadInitialData() async {
-    final allIngredients = await widget.db.watchAllIngredients().first;
+    final allIngredients = await widget.repository.watchAllIngredients().first;
     final names = allIngredients.map((i) => i.name).toList();
 
     if (_isEditing) {
       final existing =
-          await widget.db.watchIngredientsForRecipe(widget.recipe!.id).first;
+          await widget.repository.watchIngredientsForRecipe(widget.recipe!.id).first;
       setState(() {
         _existingIngredientNames = names;
         _ingredients.addAll(existing.map((e) => _DraftIngredient(
@@ -79,35 +78,38 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final companion = RecipesCompanion(
-      id: _isEditing ? Value(widget.recipe!.id) : const Value.absent(),
-      name: Value(_nameCtrl.text.trim()),
-      description: Value(
-        _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
-      ),
-      url: Value(
-        _urlCtrl.text.trim().isEmpty ? null : _urlCtrl.text.trim(),
-      ),
-    );
+    final name = _nameCtrl.text.trim();
+    final description =
+        _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim();
+    final url = _urlCtrl.text.trim().isEmpty ? null : _urlCtrl.text.trim();
 
     final int recipeId;
     if (_isEditing) {
-      await widget.db.updateRecipe(companion);
+      await widget.repository.updateRecipe(
+        id: widget.recipe!.id,
+        name: name,
+        description: description,
+        url: url,
+      );
       recipeId = widget.recipe!.id;
-      await widget.db.removeAllRecipeIngredients(recipeId);
+      await widget.repository.removeAllRecipeIngredients(recipeId);
     } else {
-      recipeId = await widget.db.insertRecipe(companion);
+      recipeId = await widget.repository.insertRecipe(
+        name: name,
+        description: description,
+        url: url,
+      );
     }
 
     for (final draft in _ingredients) {
       final ingredientId =
-          await widget.db.findOrCreateIngredient(draft.name.trim());
-      await widget.db.addRecipeIngredient(RecipeIngredientsCompanion(
-        recipeId: Value(recipeId),
-        ingredientId: Value(ingredientId),
-        quantity: Value(draft.quantity),
-        unit: Value(draft.unit),
-      ));
+          await widget.repository.findOrCreateIngredient(draft.name.trim());
+      await widget.repository.addRecipeIngredient(
+        recipeId: recipeId,
+        ingredientId: ingredientId,
+        quantity: draft.quantity,
+        unit: draft.unit,
+      );
     }
 
     if (mounted) Navigator.pop(context);

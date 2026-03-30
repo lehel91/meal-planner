@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
-import 'data/database.dart';
+import 'data/app_repository.dart';
 import 'features/meal_plan/meal_plan_screen.dart';
 import 'features/recipes/recipes_screen.dart';
 import 'shared/theme.dart';
 
 class App extends StatefulWidget {
-  final AppDatabase db;
+  final AppRepository repository;
 
-  const App({super.key, required this.db});
+  const App({super.key, required this.repository});
 
   @override
   State<App> createState() => _AppState();
@@ -27,8 +27,8 @@ class _AppState extends State<App> {
         body: IndexedStack(
           index: _currentIndex,
           children: [
-            RecipesScreen(db: widget.db),
-            MealPlanScreen(db: widget.db),
+            RecipesScreen(repository: widget.repository),
+            MealPlanScreen(repository: widget.repository),
           ],
         ),
         bottomNavigationBar: NavigationBar(

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../../data/database.dart';
+import '../../data/app_repository.dart';
 import 'recipe_form_screen.dart';
 
 class RecipesScreen extends StatelessWidget {
-  final AppDatabase db;
+  final AppRepository repository;
 
-  const RecipesScreen({super.key, required this.db});
+  const RecipesScreen({super.key, required this.repository});
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +16,7 @@ class RecipesScreen extends StatelessWidget {
         centerTitle: false,
       ),
       body: StreamBuilder<List<Recipe>>(
-        stream: db.watchAllRecipes(),
+        stream: repository.watchAllRecipes(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
@@ -49,7 +49,8 @@ class RecipesScreen extends StatelessWidget {
                 onEdit: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => RecipeFormScreen(db: db, recipe: recipe),
+                    builder: (_) => RecipeFormScreen(
+                        repository: repository, recipe: recipe),
                   ),
                 ),
                 onDelete: () => _confirmDelete(context, recipe),
@@ -61,7 +62,8 @@ class RecipesScreen extends StatelessWidget {
       floatingActionButton: FloatingActionButton(
         onPressed: () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => RecipeFormScreen(db: db)),
+          MaterialPageRoute(
+              builder: (_) => RecipeFormScreen(repository: repository)),
         ),
         child: const Icon(Icons.add),
       ),
@@ -88,7 +90,7 @@ class RecipesScreen extends StatelessWidget {
       ),
     );
     if (confirmed == true) {
-      await db.deleteRecipe(recipe.id);
+      await repository.deleteRecipe(recipe.id);
     }
   }
 }

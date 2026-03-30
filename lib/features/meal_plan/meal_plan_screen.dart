@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../data/database.dart';
+import '../../data/app_repository.dart';
 import '../pdf/pdf_service.dart';
 import 'recipe_picker_sheet.dart';
 
 class MealPlanScreen extends StatefulWidget {
-  final AppDatabase db;
+  final AppRepository repository;
 
-  const MealPlanScreen({super.key, required this.db});
+  const MealPlanScreen({super.key, required this.repository});
 
   @override
   State<MealPlanScreen> createState() => _MealPlanScreenState();
@@ -44,7 +44,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
           ),
           Expanded(
             child: StreamBuilder<List<MealPlanWithRecipe>>(
-              stream: widget.db.watchMealPlansForRange(_start, _end),
+              stream: widget.repository.watchMealPlansForRange(_start, _end),
               builder: (context, snapshot) {
                 final mealPlans = snapshot.data ?? [];
                 final planMap = {
@@ -66,7 +66,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                       mealPlan: mp,
                       onTap: () => _pickRecipe(date),
                       onRemove: mp != null
-                          ? () => widget.db.removeMealPlan(mp.mealPlan.id)
+                          ? () => widget.repository.removeMealPlan(mp.mealPlan.id)
                           : null,
                     );
                   },
@@ -83,16 +83,16 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     final recipe = await showModalBottomSheet<Recipe>(
       context: context,
       isScrollControlled: true,
-      builder: (_) => RecipePickerSheet(db: widget.db),
+      builder: (_) => RecipePickerSheet(repository: widget.repository),
     );
     if (recipe != null) {
-      await widget.db.setMealPlan(date, recipe.id);
+      await widget.repository.setMealPlan(date, recipe.id);
     }
   }
 
   Future<void> _exportPdf() async {
     final mealPlans =
-        await widget.db.watchMealPlansForRange(_start, _end).first;
+        await widget.repository.watchMealPlansForRange(_start, _end).first;
     if (mealPlans.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -107,7 +107,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       final id = mp.recipe.id;
       if (!ingredientsByRecipe.containsKey(id)) {
         ingredientsByRecipe[id] =
-            await widget.db.getIngredientsForRecipe(id);
+            await widget.repository.getIngredientsForRecipe(id);
       }
     }
 
