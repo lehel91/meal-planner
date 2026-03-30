@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/app_repository.dart';
 import 'recipe_form_screen.dart';
@@ -15,7 +16,10 @@ class RecipesScreen extends StatelessWidget {
         title: const Text('Recipes'),
         centerTitle: false,
       ),
-      body: StreamBuilder<List<Recipe>>(
+      body: Column(
+        children: [
+          const _OnboardingBanner(),
+          Expanded(child: StreamBuilder<List<Recipe>>(
         stream: repository.watchAllRecipes(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
@@ -58,6 +62,8 @@ class RecipesScreen extends StatelessWidget {
             },
           );
         },
+      )),  // Expanded + StreamBuilder
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => Navigator.push(
@@ -151,6 +157,92 @@ class _RecipeCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _OnboardingBanner extends StatefulWidget {
+  const _OnboardingBanner();
+
+  @override
+  State<_OnboardingBanner> createState() => _OnboardingBannerState();
+}
+
+class _OnboardingBannerState extends State<_OnboardingBanner> {
+  static const _prefKey = 'onboarding_tip_dismissed';
+  bool _visible = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final dismissed = prefs.getBool(_prefKey) ?? false;
+    if (!dismissed && mounted) {
+      setState(() => _visible = true);
+    }
+  }
+
+  Future<void> _dismiss() async {
+    setState(() => _visible = false);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_prefKey, true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+      child: _visible
+          ? Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              child: Card(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.lightbulb_outline,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Start by adding a recipe with the + button, '
+                          'then head to Meal Plan to schedule your week.',
+                          style: TextStyle(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onPrimaryContainer,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      IconButton(
+                        icon: Icon(
+                          Icons.close,
+                          size: 18,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onPrimaryContainer,
+                        ),
+                        onPressed: _dismiss,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            )
+          : const SizedBox.shrink(),
     );
   }
 }
