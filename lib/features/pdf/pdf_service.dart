@@ -4,15 +4,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 import '../../data/database.dart';
-import '../../data/measurement_unit.dart';
-
-class _ShoppingItem {
-  final String name;
-  final double? quantity;
-  final MeasurementUnit? unit;
-
-  _ShoppingItem({required this.name, this.quantity, this.unit});
-}
+import '../shopping_list/shopping_list_utils.dart';
 
 class PdfService {
   static Future<void> generateAndShare(
@@ -26,7 +18,7 @@ class PdfService {
             mp.mealPlan.date.day): mp,
     };
 
-    final shoppingItems = _aggregateShoppingList(mealPlans, ingredientsByRecipe);
+    final shoppingItems = aggregateShoppingList(mealPlans, ingredientsByRecipe);
 
     // Load fonts with full Unicode / extended-Latin support (covers ő, ű, á, etc.)
     final font = await PdfGoogleFonts.robotoRegular();
@@ -53,7 +45,7 @@ class PdfService {
         ),
         build: (context) => [
           pw.Text(
-            'Meal Plan',
+            'Fridgenda – Meal Plan',
             style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold),
           ),
           pw.SizedBox(height: 4),
@@ -86,50 +78,23 @@ class PdfService {
 
   // ── Shopping list ─────────────────────────────────────────────────────────
 
-  static List<_ShoppingItem> _aggregateShoppingList(
-    List<MealPlanWithRecipe> mealPlans,
-    Map<int, List<RecipeIngredientWithDetails>> ingredientsByRecipe,
-  ) {
-    final aggregated = <String, _ShoppingItem>{};
-
-    for (final mp in mealPlans) {
-      final items = ingredientsByRecipe[mp.recipe.id] ?? [];
-      for (final item in items) {
-        final key = '${item.ingredient.name}__${item.unit?.name ?? 'none'}';
-        final existing = aggregated[key];
-        if (existing != null) {
-          if (existing.quantity != null && item.quantity != null) {
-            aggregated[key] = _ShoppingItem(
-              name: existing.name,
-              quantity: existing.quantity! + item.quantity!,
-              unit: existing.unit,
-            );
-          }
-        } else {
-          aggregated[key] = _ShoppingItem(
-            name: item.ingredient.name,
-            quantity: item.quantity,
-            unit: item.unit,
-          );
-        }
-      }
-    }
-
-    return aggregated.values.toList()
-      ..sort((a, b) => a.name.compareTo(b.name));
-  }
-
-  static List<pw.Widget> _buildShoppingListRows(List<_ShoppingItem> items) {
+  static List<pw.Widget> _buildShoppingListRows(List<ShoppingItem> items) {
     final rows = <pw.Widget>[];
-    for (int i = 0; i < items.length; i += 2) {
+    for (int i = 0; i < items.length; i += 3) {
       rows.add(pw.Row(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Expanded(child: _buildShoppingItem(items[i])),
-          pw.SizedBox(width: 16),
+          pw.SizedBox(width: 12),
           pw.Expanded(
             child: i + 1 < items.length
                 ? _buildShoppingItem(items[i + 1])
+                : pw.SizedBox(),
+          ),
+          pw.SizedBox(width: 12),
+          pw.Expanded(
+            child: i + 2 < items.length
+                ? _buildShoppingItem(items[i + 2])
                 : pw.SizedBox(),
           ),
         ],
@@ -139,14 +104,8 @@ class PdfService {
     return rows;
   }
 
-  static pw.Widget _buildShoppingItem(_ShoppingItem item) {
-    final qty = item.quantity != null
-        ? (item.quantity! % 1 == 0
-            ? item.quantity!.toInt().toString()
-            : double.parse(item.quantity!.toStringAsFixed(4)).toString())
-        : '';
-    final unit = item.unit?.abbreviation ?? '';
-    final label = [qty, unit, item.name].where((s) => s.isNotEmpty).join(' ');
+  static pw.Widget _buildShoppingItem(ShoppingItem item) {
+    final label = formatShoppingItemLabel(item);
 
     return pw.Row(
       crossAxisAlignment: pw.CrossAxisAlignment.center,

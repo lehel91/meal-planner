@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../data/app_repository.dart';
-import '../../data/measurement_unit.dart';
 import '../pdf/pdf_service.dart';
+import 'shopping_list_utils.dart';
 
 class ShoppingListScreen extends StatefulWidget {
   final AppRepository repository;
@@ -323,17 +323,6 @@ class _RecipeGroup extends StatelessWidget {
     );
   }
 
-  String _formatIngredient(RecipeIngredientWithDetails item) {
-    if (item.quantity == null && item.unit == null) return item.ingredient.name;
-    final rawQty =
-        item.quantity != null ? item.quantity! * count : null;
-    final qty = rawQty != null
-        ? (rawQty % 1 == 0
-            ? rawQty.toInt().toString()
-            : double.parse(rawQty.toStringAsFixed(4)).toString())
-        : '';
-    final unit = item.unit?.abbreviation ?? '';
-    return '$qty${unit.isNotEmpty ? ' $unit' : ''} ${item.ingredient.name}'
-        .trim();
-  }
+  String _formatIngredient(RecipeIngredientWithDetails item) =>
+      formatIngredientLabel(item, count);
 }
