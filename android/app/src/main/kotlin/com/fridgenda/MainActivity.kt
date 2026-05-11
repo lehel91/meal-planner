@@ -1,4 +1,4 @@
-package com.personal.meal_planner
+package com.fridgenda
 
 import io.flutter.embedding.android.FlutterActivity
 

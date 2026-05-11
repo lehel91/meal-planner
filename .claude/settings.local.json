@@ -5,7 +5,10 @@
       "Bash(flutter pub:*)",
       "Bash(dart run:*)",
       "Bash(flutter analyze:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(flutter doctor:*)",
+      "Read(//c/Users/Dell/AppData/Local/**)",
+      "Bash(/dev/null -name flutter.gradle -o -name FlutterExtension.groovy)"
     ]
   }
 }
